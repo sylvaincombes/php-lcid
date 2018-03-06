@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "LCID to iso locale datas",
+  "description": "Datas for matching LCID to icu locales",
+  "type": "object",
+  "properties": {
+    "mapped": {
+      "description": "Key value pair of icu locale string > lcid decimal integer",
+      "type": "object",
+      "patternProperties": {
+        "^([a-zA-Z]{2,3})+(([-_][a-zA-Z]{4})+)?([-_][a-zA-Z]{2})?([-_][a-zA-Z]*)?(@(collation|calendar|currency|numbers)\\=[a-zA-Z]*[;]?((collation|calendar|currency|numbers)\\=[a-zA-Z-_]*[;]?)*)?": {
+          "type": "number"
+        }
+      }
+    },
+    "fallbacks": {
+      "description": "For lcid not found in icu locales, fallback to a language",
+      "type": "object",
+      "patternProperties": {
+        "^([a-zA-Z]{2,3})+(([-_][a-zA-Z]{4})+)?([-_][a-zA-Z]{2})?([-_][a-zA-Z]*)?(@(collation|calendar|currency|numbers)\\=[a-zA-Z]*[;]?((collation|calendar|currency|numbers)\\=[a-zA-Z-_]*[;]?)*)?": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "mapped"
+  ]
+}

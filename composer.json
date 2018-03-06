@@ -1,0 +1,36 @@
+{
+  "name": "sylvaincombes/php-lcid",
+  "description": "Library to find iso language code from a microsoft LCID",
+  "keywords": ["php", "lcid", "locale", "icu", "intl"],
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Sylvain Combes",
+      "email": "combes.sylvain@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "SylvainCombes\\": "src/SylvainCombes"
+    }
+  },
+  "require": {
+    "php": ">=5.6",
+    "league/json-guard": "^1.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^7.0",
+    "ext-intl": "*",
+    "symfony/intl": "^4.0",
+    "symfony/console": "^4.0",
+    "m6web/coke": "^2.2",
+    "m6web/symfony2-coding-standard": "^3.3"
+  },
+  "scripts": {
+    "test": "./vendor/bin/phpunit --colors=always",
+    "lint": "./vendor/bin/coke",
+    "fix": "./vendor/bin/coke --fix",
+    "check": ["@test", "@fix", "@lint"]
+  }
+}
