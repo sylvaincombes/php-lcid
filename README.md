@@ -2,6 +2,8 @@
 
 Php library trying to get a valid Unicode Locale for a given Microsoft LCID.
 
+Requires PHP 8.4+.
+
 ## Installation
 
 ```
@@ -44,19 +46,13 @@ $localeLcid = $finder->findByLocale('fr');
 /**
  * Get an array or null in response (search everywhere)
  * First result in array should be the 'best' match
- * 
+ *
  * Return example :
- * array(8) {
+ * array(2) {
  *     [0] => int(1036)
- *     [1] => int(11276)
- *     [2] => int(9228)
- *     [3] => int(12300)
- *     [4] => int(13324)
- *     [5] => int(14348)
- *     [6] => int(10252)
- *     [7] => int(7180)
+ *     [1] => int(7180)
  *   }
- * 
+ *
  */
 ```
 
@@ -100,7 +96,7 @@ All contributions are very welcome.
 
 There is a command who build the datas, what it does is :
 
-1. Fetching a json from [sindresorhus/lcid](https://raw.githubusercontent.com/sindresorhus/lcid/master/lcid.json) - **this is our starting non editable datas point**
+1. Fetching a json from [sindresorhus/lcid](https://raw.githubusercontent.com/sindresorhus/lcid/main/lcid.json) - **this is our starting non editable datas point**
 1. Check if locales are found in symfony/intl locales list
     - If yes keep them
     - If no trying to find if a locale or language is matching
@@ -116,26 +112,39 @@ php bin/console lcid:generate-datas -v
 
 And the [datas.json](src/SylvainCombes/Lcid/Resources/datas.json) will be updated.
 
-> NB : It also mean you can't override datas provided by the base json grabbed from [sindresorhus/lcid](https://raw.githubusercontent.com/sindresorhus/lcid/master/lcid.json)
+> NB : It also mean you can't override datas provided by the base json grabbed from [sindresorhus/lcid](https://raw.githubusercontent.com/sindresorhus/lcid/main/lcid.json)
 
 ### Testing
 
 Launching the project tests :
 
 ```
-composer run test
+composer test
+```
+
+### Static analysis
+
+```
+composer phpstan
+composer psalm
 ```
 
 ### Lint php
 
 ```
-composer run lint
+composer lint
 ```
 
 You can also "autofix" :
 
 ```
-composer run fix
+composer fix
+```
+
+### Run all checks
+
+```
+composer check
 ```
 
 ## References
@@ -166,15 +175,15 @@ composer run fix
 
 #### Required
 
-- [thephpleague/json-guard](http://json-guard.thephpleague.com) - *used to validate custom user json datas against a json schema* 
+- [opis/json-schema](https://opis.io/json-schema) - *used to validate custom user json datas against a json schema*
 
 #### Used in dev
 
-- [phpunit](https://phpunit.de/) - *used for ... testing*
-- [symfony/intl]() - *used in dev to check if locales in datas sources matches the locales list provided (I found that this locales list was different than using the one provided by the php-intl extension and I tend to think the one in this package is more robust and widely used instead of depending on local installation / configuration of a php extension)*
-- [symfony/console](https://symfony.com/doc/current/components/console.html) - *used in dev for console command building datas*
-- [phpcs + coke + symfony2-coding-standard](https://github.com/M6Web/Symfony2-coding-standard) - *pimp my ride*
-- [json schema lint](https://jsonschemalint.com) - *used to check / test writing the json schema*
-- [regex101](https://regex101.com/r/MouP4d/1) - *used to writing / testing the locale regexp*
+- [phpunit](https://phpunit.de/) - *used for testing*
+- [symfony/intl](https://symfony.com/doc/current/components/intl.html) - *used to check if locales in datas sources match the ICU locales list*
+- [symfony/console](https://symfony.com/doc/current/components/console.html) - *used for the console command building datas*
+- [php-cs-fixer](https://cs.symfony.com/) - *code style enforcement*
+- [phpstan](https://phpstan.org/) - *static analysis at level 10*
+- [psalm](https://psalm.dev/) - *static analysis at error level 1*
 
 

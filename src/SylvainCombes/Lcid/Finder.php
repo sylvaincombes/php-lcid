@@ -1,319 +1,192 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SylvainCombes\Lcid;
 
-use League\JsonGuard\Validator;
+use Opis\JsonSchema\Helper;
+use Opis\JsonSchema\Validator as JsonSchemaValidator;
 
-/**
- * Class Finder
- *
- * @package SylvainCombes\Lcid
- */
-class Finder
+final class Finder
 {
-    /**
-     * @var string
-     */
-    const DATA_PATH = __DIR__.'/Resources/datas.json';
+    public const DATA_PATH = __DIR__.'/Resources/datas.json';
+    public const SCHEMA_PATH = __DIR__.'/Resources/datas-schema.json';
 
-    /**
-     * @var string
-     */
-    const SCHEMA_PATH = __DIR__.'/Resources/datas-schema.json';
+    /** @var array{mapped: array<string, int>, fallbacks?: array<string, list<int>>}|null */
+    private ?array $datas = null;
 
-    /**
-     * @var array|null
-     */
-    private $datas = null;
+    /** @var array<string, list<int>>|null */
+    private ?array $fallbackDatas = null;
 
-    /**
-     * @var mixed|null
-     */
-    private $fallbackDatas = null;
+    /** @var array<string, int>|null */
+    private ?array $mappedDatas = null;
 
-    /**
-     * @var mixed|null
-     */
-    private $mappedDatas = null;
-
-    /**
-     * Finder constructor.
-     *
-     * @param null|string $customJsonDataFile
-     *
-     * @throws \Exception
-     */
-    public function __construct($customJsonDataFile = null)
+    public function __construct(?string $customJsonDataFile = null)
     {
-        if (!is_null($this->datas)) {
-            return $this;
-        }
-
-        if (!is_null($customJsonDataFile) && is_string($customJsonDataFile)) {
+        if ($customJsonDataFile !== null) {
             if (!file_exists($customJsonDataFile)) {
                 throw new \Exception('File not found in '.$customJsonDataFile);
             }
 
-            $customJson = json_decode(file_get_contents($customJsonDataFile));
-            $jsonSchema = json_decode(file_get_contents(self::SCHEMA_PATH));
-            $validator  = new Validator($customJson, $jsonSchema);
-            if ($validator->fails()) {
+            $customJson = (string) file_get_contents($customJsonDataFile);
+            $schema = (string) file_get_contents(self::SCHEMA_PATH);
+
+            $validator = new JsonSchemaValidator();
+            /** @var object $schemaObject */
+            $schemaObject = json_decode($schema, false, 512, JSON_THROW_ON_ERROR);
+            $result = $validator->validate(
+                Helper::toJSON(json_decode($customJson)),
+                $schemaObject
+            );
+
+            if (!$result->isValid()) {
                 $errors = PHP_EOL;
-                foreach ($validator->errors() as $error) {
-                    $errors .= $error->getMessage().PHP_EOL;
+                /** @psalm-suppress MixedAssignment */
+                foreach ($result->error()?->subErrors() ?? [] as $error) {
+                    if ($error instanceof \Opis\JsonSchema\Errors\ValidationError) {
+                        $errors .= $error->message().PHP_EOL;
+                    }
                 }
                 throw new \InvalidArgumentException('Your custom data file is not valid : '.$errors);
             }
 
-            $customJson = json_decode(file_get_contents($customJsonDataFile), true);
-            $this->setDatas($customJson);
+            /** @var array{mapped: array<string, int>, fallbacks?: array<string, list<int>>} $decoded */
+            $decoded = json_decode($customJson, true, 512, JSON_THROW_ON_ERROR);
+            $this->setDatas($decoded);
 
-            return $this;
+            return;
         }
 
         if (!file_exists(self::DATA_PATH)) {
             throw new \Exception('Datas file not found in '.self::DATA_PATH);
         }
 
-        $datas = json_decode(file_get_contents(self::DATA_PATH), true);
-        $this->setDatas($datas);
-
-        return $this;
+        /** @var array{mapped: array<string, int>, fallbacks?: array<string, list<int>>} $decoded */
+        $decoded = json_decode((string) file_get_contents(self::DATA_PATH), true, 512, JSON_THROW_ON_ERROR);
+        $this->setDatas($decoded);
     }
 
-    /**
-     * @return array|mixed
-     */
-    public function getAllDatas()
+    /** @return array{mapped: array<string, int>, fallbacks?: array<string, list<int>>} */
+    public function getAllDatas(): array
     {
-        return $this->datas;
+        return $this->datas ?? ['mapped' => [], 'fallbacks' => []];
     }
 
-    /**
-     * @return string
-     */
-    public function getAllDatasAsJson()
+    public function getAllDatasAsJson(): string
     {
-        return json_encode($this->datas, JSON_PRETTY_PRINT);
+        return (string) json_encode($this->datas, JSON_PRETTY_PRINT);
     }
 
-    /**
-     * @return array|mixed
-     */
-    public function getAllDatasReversed()
+    /** @return array<string, mixed> */
+    public function getAllDatasReversed(): array
     {
-        $datas['mapped']    = $this->getDatasReversed();
-        $datas['fallbacks'] = $this->getFallbackDatas();
-
-        return $datas;
+        return [
+            'mapped' => $this->getDatasReversed(),
+            'fallbacks' => $this->getFallbackDatas(),
+        ];
     }
 
-    /**
-     * @return string
-     */
-    public function getAllDatasReversedAsJson()
+    public function getAllDatasReversedAsJson(): string
     {
-        return json_encode($this->getAllDatasReversedAsJson(), JSON_PRETTY_PRINT);
+        return (string) json_encode($this->getAllDatasReversed(), JSON_PRETTY_PRINT);
     }
 
-    /**
-     * @return array|mixed
-     */
-    public function getFallbackDatas()
+    /** @return array<string, list<int>>|null */
+    public function getFallbackDatas(): ?array
     {
         return $this->fallbackDatas;
     }
 
-    /**
-     * @return string
-     */
-    public function getFallbackDatasAsJson()
+    public function getFallbackDatasAsJson(): string
     {
-        return json_encode($this->getFallbackDatas(), JSON_PRETTY_PRINT);
+        return (string) json_encode($this->fallbackDatas, JSON_PRETTY_PRINT);
     }
 
-    /**
-     * @return array|mixed
-     */
-    public function getDatas()
+    /** @return array<string, int>|null */
+    public function getDatas(): ?array
     {
         return $this->mappedDatas;
     }
 
-    /**
-     * @return string
-     */
-    public function getDatasAsJson()
+    public function getDatasAsJson(): string
     {
-        return json_encode($this->mappedDatas, JSON_PRETTY_PRINT);
+        return (string) json_encode($this->mappedDatas, JSON_PRETTY_PRINT);
     }
 
-    /**
-     * @return array|mixed
-     */
-    public function getDatasReversed()
+    /** @return array<int, string> */
+    public function getDatasReversed(): array
     {
-        return array_flip($this->mappedDatas);
+        return array_flip($this->mappedDatas ?? []);
     }
 
-    /**
-     * @return string
-     */
-    public function getDatasReversedAsJson()
+    public function getDatasReversedAsJson(): string
     {
-        return json_encode($this->getDatasReversed(), JSON_PRETTY_PRINT);
+        return (string) json_encode($this->getDatasReversed(), JSON_PRETTY_PRINT);
     }
 
-    /**
-     * Return only one lcid code, don't search in fallbacks
-     *
-     * @param string $locale
-     *
-     * @return int|null
-     * @throws \TypeError
-     */
-    public function findOneByLocale($locale)
+    public function findOneByLocale(string $locale): ?int
     {
-        if (!is_string($locale)) {
-            throw new \TypeError('Expected a locale string');
-        }
-
-        if (strlen($locale) == 2) {
+        if (strlen($locale) === 2) {
             $locale = LanguageMatchDefaultCountry::match($locale);
         }
 
-        if (!empty($this->mappedDatas[$locale])) {
-            return $this->mappedDatas[$locale];
-        }
-
-        return null;
+        return $this->mappedDatas[$locale] ?? null;
     }
 
-    /**
-     * Return one or more lcid matching codes, null on no match
-     *
-     * @param string $locale
-     *
-     * @return array|null
-     * @throws \TypeError
-     */
-    public function findByLocale($locale)
+    /** @return list<int>|null */
+    public function findByLocale(string $locale): ?array
     {
-        // Best match first
         $lcid = $this->findOneByLocale($locale);
-
-        // Add fallback results
         $lcids = $this->searchLocaleInFallback($locale);
 
-        if (!is_null($lcids)) {
-            if ($lcid) {
+        if ($lcids !== null) {
+            if ($lcid !== null) {
                 array_unshift($lcids, $lcid);
                 $lcids = array_unique($lcids);
             }
 
-            return $lcids;
+            return array_values($lcids);
         }
 
-        if ($lcid) {
+        if ($lcid !== null) {
             return [$lcid];
         }
 
         return null;
     }
 
-    /**
-     * Return one locale code by lcid code
-     *
-     * @param integer $lcid decimal integer code of the lcid
-     *
-     * @return null|string
-     * @throws \TypeError
-     */
-    public function findByLcid($lcid)
+    public function findByLcid(int $lcid): ?string
     {
-        if (!is_int($lcid)) {
-            throw new \TypeError('Expected a number');
-        }
-
-        $datas = $this->getDatasReversed();
-
-        if (!empty($datas[$lcid])) {
-            return $datas[$lcid];
-        }
-
-        return null;
+        return $this->getDatasReversed()[$lcid] ?? null;
     }
 
-    /**
-     * Return one locale code by lcid code
-     *
-     * @param integer $lcid decimal integer code of the lcid
-     *
-     * @return null|string
-     * @throws \TypeError
-     */
-    public function findByLcidWithFallback($lcid)
+    public function findByLcidWithFallback(int $lcid): ?string
     {
-        $result = $this->findByLcid($lcid);
-
-        if (is_null($result)) {
-            return $this->searchLcidInFallback($lcid);
-        }
-
-        return $result;
+        return $this->findByLcid($lcid) ?? $this->searchLcidInFallback($lcid);
     }
 
-    /**
-     * Search lcid value in fallback datas
-     *
-     * @param int $lcid
-     *
-     * @return int|null|string
-     */
-    private function searchLcidInFallback($lcid)
+    private function searchLcidInFallback(int $lcid): ?string
     {
-        if (is_int($lcid)) {
-            foreach ($this->fallbackDatas as $key => $fallbackData) {
-                if (in_array($lcid, $fallbackData)) {
-                    return $key;
-                }
+        foreach ($this->fallbackDatas ?? [] as $key => $fallbackData) {
+            if (in_array($lcid, $fallbackData)) {
+                return $key;
             }
         }
 
         return null;
     }
 
-    /**
-     * Search locale value in fallback datas
-     *
-     * @param string $locale
-     *
-     * @return null|array
-     */
-    private function searchLocaleInFallback($locale)
+    /** @return list<int>|null */
+    private function searchLocaleInFallback(string $locale): ?array
     {
-        if (is_string($locale)) {
-            if (!empty($this->fallbackDatas[$locale])) {
-                return $this->fallbackDatas[$locale];
-            }
-        }
-
-        return null;
+        return $this->fallbackDatas[$locale] ?? null;
     }
 
-    /**
-     * @param $datas mixed
-     */
-    private function setDatas($datas)
+    /** @param array{mapped: array<string, int>, fallbacks?: array<string, list<int>>} $datas */
+    private function setDatas(array $datas): void
     {
         $this->datas = $datas;
-
-        if (!empty($this->datas["mapped"])) {
-            $this->mappedDatas = $this->datas["mapped"];
-        }
-
-        if (!empty($this->datas["fallbacks"])) {
-            $this->fallbackDatas = $this->datas["fallbacks"];
-        }
+        $this->mappedDatas = $datas['mapped'];
+        $this->fallbackDatas = $datas['fallbacks'] ?? null;
     }
 }

@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * start source :   https://www.science.co.il/language/Locale-codes.php
  * see also :       https://msdn.microsoft.com/en-us/library/ms912047(v=winembedded.10).aspx
  */
-
 return [
     [
         'name'     => 'Afrikaans',

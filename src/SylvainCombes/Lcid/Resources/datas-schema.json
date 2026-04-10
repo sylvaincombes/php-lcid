@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "LCID to iso locale datas",
   "description": "Datas for matching LCID to icu locales",
   "type": "object",
