@@ -1,5 +1,0 @@
-standard=vendor/m6web/symfony2-coding-standard/Symfony2
-
-src
-
-!tests

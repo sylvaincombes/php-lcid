@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SylvainCombes\Lcid\Command;
 
 use SylvainCombes\Lcid\Finder;
@@ -7,64 +9,24 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Intl\Intl;
+use Symfony\Component\Intl\Locales;
 
-/**
- * Class GenerateDatasCommand
- *
- * @package SylvainCombes\Lcid\Command
- */
-class GenerateDatasCommand extends Command
+final class GenerateDatasCommand extends Command
 {
-    /**
-     * @var string
-     */
-    const DISTANT_JSON_URL = 'https://raw.githubusercontent.com/sindresorhus/lcid/master/lcid.json';
+    public const DISTANT_JSON_URL = 'https://raw.githubusercontent.com/sindresorhus/lcid/main/lcid.json';
+    public const LOCAL_JSON_PATH = __DIR__.'/../Resources/datas.json';
+    public const LOCAL_MANUAL_DATAS_PATH = __DIR__.'/../Resources/datas-manual.php';
 
-    /**
-     * @var string
-     */
-    const LOCAL_JSON_PATH = __DIR__.'/../Resources/datas.json';
+    private bool $getDistantDatas = true;
+    private ?string $json = null;
+    private bool $useFallbacks = true;
+    private bool $useManualDatas = true;
 
-    /**
-     * @var string
-     */
-    const LOCAL_MANUAL_DATAS_PATH = __DIR__.'/../Resources/datas-manual.php';
+    /** @var array<string> */
+    private array $locales = [];
 
-    /**
-     * @var bool
-     */
-    private $getDistantDatas = true;
-
-    /**
-     * @var
-     */
-    private $json;
-
-    /**
-     * @var
-     */
-    private $locales;
-
-    /**
-     * @var
-     */
-    private $originalDistantJson;
-
-    /**
-     * @var bool
-     */
-    private $useFallbacks = true;
-
-    /**
-     * @var bool
-     */
-    private $useManualDatas = true;
-
-    /**
-     *
-     */
-    protected function configure()
+    #[\Override]
+    protected function configure(): void
     {
         $this->setName('lcid:generate-datas')
             ->setDescription('Generate lcid to iso locale datas building.')
@@ -73,24 +35,17 @@ class GenerateDatasCommand extends Command
             );
     }
 
-    /**
-     * @param InputInterface  $input
-     * @param OutputInterface $output
-     *
-     * @return int|null
-     * @throws \Exception
-     * @throws \TypeError
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    #[\Override]
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->locales = Intl::getLanguageBundle()->getLocales();
+        $this->locales = Locales::getLocales();
 
         $io = new SymfonyStyle($input, $output);
         $io->title('LCID data builder');
 
         if ($this->getDistantDatas) {
             $download = $this->downloadDistantJson($io);
-            if (is_int($download) && $download > 0) {
+            if ($download > 0) {
                 return $download;
             }
 
@@ -102,8 +57,8 @@ class GenerateDatasCommand extends Command
 
                 if ($this->json !== $existingJson) {
                     $io->comment('Local and distant data are different, update local datas');
-                    $write = $this->writeDistantDatas($this->json, $io);
-                    if (is_int($write) && $write > 0) {
+                    $write = $this->writeDistantDatas((string) $this->json, $io);
+                    if ($write > 0) {
                         return $write;
                     }
                 } else {
@@ -111,68 +66,68 @@ class GenerateDatasCommand extends Command
                 }
             } else {
                 $io->warning('No local data file found.');
-                $write = $this->writeDistantDatas($this->json, $io);
-                if (is_int($write) && $write > 0) {
+                $write = $this->writeDistantDatas((string) $this->json, $io);
+                if ($write > 0) {
                     return $write;
                 }
             }
         }
 
         if ($this->useManualDatas) {
-            // PHASE 2 :: use complementary datas
-            $old = include(self::LOCAL_MANUAL_DATAS_PATH);
+            /** @var list<array{name: string, language: string, locale?: string, lcid: int}> $old */
+            $old = include self::LOCAL_MANUAL_DATAS_PATH;
 
             $finder = new Finder();
-            $datas  = $finder->getAllDatas();
+            $datas = $finder->getAllDatas();
+            $datas['fallbacks'] ??= [];
+            /** @var array<string, int> $mapped */
+            $mapped = &$datas['mapped'];
+            /** @var array<string, list<int>> $fallbacks */
+            $fallbacks = &$datas['fallbacks'];
 
             foreach ($old as $item) {
-                $mapped    = &$datas['mapped'];
-                $fallbacks = &$datas['fallbacks'];
-
                 $language = $item['language'];
-                $locale   = isset($item['locale']) ? $item['locale'] : null;
-                $lcid     = $item['lcid'];
+                $locale = $item['locale'] ?? null;
+                $lcid = $item['lcid'];
 
                 $mapped = array_flip($mapped);
-                $found  = !empty($mapped[$lcid]);
+                $found = isset($mapped[$lcid]);
                 $mapped = array_flip($mapped);
 
                 if (!$found) {
                     echo 'Lcid '.$lcid.' in old datas not existing in datas'.PHP_EOL;
 
-                    if (!empty($locale) && in_array($locale, $this->locales)) {
+                    if ($locale !== null && $locale !== '' && in_array($locale, $this->locales)) {
                         echo 'Valid locale '.$locale.' found !'.PHP_EOL;
 
-                        if (empty($mapped[$locale]) && (strlen($locale) == 5 || strlen($locale) == 6)) {
+                        if (!isset($mapped[$locale]) && (strlen($locale) === 5 || strlen($locale) === 6)) {
                             $mapped[$locale] = $lcid;
 
                             if (isset($fallbacks[$locale]) && in_array($lcid, $fallbacks[$locale])) {
-                                $key = array_search($lcid, $fallbacks[$locale]);
+                                $key = (int) array_search($lcid, $fallbacks[$locale]);
                                 array_splice($fallbacks[$locale], $key, 1);
-                                if (count($fallbacks[$locale]) === 0) {
+                                /** @psalm-suppress DocblockTypeContradiction */
+                                if ($fallbacks[$locale] === []) {
                                     unset($fallbacks[$locale]);
                                 }
                             }
 
                             if (isset($fallbacks[$language]) && in_array($lcid, $fallbacks[$language])) {
-                                $key = array_search($lcid, $fallbacks[$language]);
+                                $key = (int) array_search($lcid, $fallbacks[$language]);
                                 array_splice($fallbacks[$language], $key, 1);
-                                if (count($fallbacks[$language]) === 0) {
+                                /** @psalm-suppress DocblockTypeContradiction */
+                                if ($fallbacks[$language] === []) {
                                     unset($fallbacks[$language]);
                                 }
                             }
-                        } elseif (!empty($mapped[$locale]) || (strlen($locale) == 2 || strlen($locale) == 3)) {
+                        } elseif (isset($mapped[$locale]) || strlen($locale) === 2 || strlen($locale) === 3) {
                             if (!isset($fallbacks[$locale]) || !in_array($lcid, $fallbacks[$locale])) {
                                 $fallbacks[$locale][] = $lcid;
                             }
                         }
-                    } elseif (!empty(($language)) && in_array($language, $this->locales)) {
+                    } elseif ($language !== '' && in_array($language, $this->locales)) {
                         echo 'Valid language '.$language.' found !'.PHP_EOL;
-                        if (!isset($fallbacks[$language]) || !in_array(
-                            $lcid,
-                            $fallbacks[$language]
-                        )
-                        ) {
+                        if (!isset($fallbacks[$language]) || !in_array($lcid, $fallbacks[$language])) {
                             $fallbacks[$language][] = $lcid;
                         }
                     }
@@ -182,90 +137,79 @@ class GenerateDatasCommand extends Command
             ksort($mapped);
             ksort($fallbacks);
 
-            $write = $this->writeDistantDatas(json_encode($datas, JSON_PRETTY_PRINT), $io);
-            if (is_int($write) && $write > 0) {
+            $encoded = json_encode($datas, JSON_PRETTY_PRINT);
+            if ($encoded === false) {
+                $io->error('Failed to encode data as JSON');
+
+                return Command::FAILURE;
+            }
+
+            $write = $this->writeDistantDatas($encoded, $io);
+            if ($write > 0) {
                 return $write;
             }
         }
 
-        return 0;
+        return Command::SUCCESS;
     }
 
-    /**
-     * @param string       $json
-     * @param SymfonyStyle $io
-     *
-     * @return int
-     */
-    private function writeDistantDatas($json, SymfonyStyle $io)
+    private function writeDistantDatas(string $json, SymfonyStyle $io): int
     {
         $io->text('Writing distant datas to local');
         $writeSuccess = file_put_contents(self::LOCAL_JSON_PATH, $json);
         if ($writeSuccess !== false) {
             $io->success('Done');
 
-            return 0;
-        } else {
-            $io->error('Error while trying to write local file to '.self::LOCAL_JSON_PATH);
-
-            return 1;
+            return Command::SUCCESS;
         }
+
+        $io->error('Error while trying to write local file to '.self::LOCAL_JSON_PATH);
+
+        return Command::FAILURE;
     }
 
-    /**
-     * @param SymfonyStyle $io
-     *
-     * @return int
-     */
-    private function downloadDistantJson(SymfonyStyle $io)
+    private function downloadDistantJson(SymfonyStyle $io): int
     {
         $io->comment('Fetching json datas from '.self::DISTANT_JSON_URL.' ...');
 
-        $this->originalDistantJson = file_get_contents(self::DISTANT_JSON_URL);
+        $contents = file_get_contents(self::DISTANT_JSON_URL);
 
-        if ($this->originalDistantJson) {
-            if ($io->isVerbose()) {
-                $io->comment('Distant datas fetched');
-                $io->comment('Starting cleanup for locale not matching icu');
-            }
-            $this->json = $this->cleanupIcuNotFoundLocales($this->originalDistantJson, $io);
-        } else {
+        if ($contents === false || $contents === '') {
             $io->error('Error fetching distant datas');
 
-            return 1;
+            return Command::FAILURE;
         }
 
-        return 0;
+        if ($io->isVerbose()) {
+            $io->comment('Distant datas fetched');
+            $io->comment('Starting cleanup for locale not matching icu');
+        }
+
+        $this->json = $this->cleanupIcuNotFoundLocales($contents, $io);
+
+        return Command::SUCCESS;
     }
 
-    /**
-     * @param string       $jsonDatas
-     * @param SymfonyStyle $io
-     *
-     * @return string
-     */
-    private function cleanupIcuNotFoundLocales($jsonDatas, SymfonyStyle $io)
+    private function cleanupIcuNotFoundLocales(string $jsonDatas, SymfonyStyle $io): string
     {
-        $datas    = json_decode($jsonDatas, true);
-        $libDatas = array_flip($datas);
+        /** @var array<int, string> $datas */
+        $datas = json_decode($jsonDatas, true);
 
-        $formattedDatas = [];
+        $formattedDatas = ['mapped' => [], 'fallbacks' => []];
 
-        foreach ($libDatas as $key => $data) {
+        foreach ($datas as $key => $data) {
             if (!in_array($data, $this->locales) && $this->useFallbacks) {
                 if ($io->isVeryVerbose()) {
                     echo 'Locale '.$data.' with lcid '.$key.' not found in icu list'.PHP_EOL;
                 }
 
-                // First fallback with intl
-                $locale = \Locale::lookup($this->locales, $data, true, 'NOT_FOUND').PHP_EOL;
+                $locale = trim(\Locale::lookup($this->locales, $data, true, 'NOT_FOUND') ?? '');
 
                 if ($io->isVeryVerbose()) {
                     echo 'Testing if a fallback on locale '.$locale.' with lcid '.$key.' will be found in icu list'.PHP_EOL;
                 }
 
                 if (!in_array($locale, $this->locales)) {
-                    // Second fallback by language
                     $lang = explode('_', $data)[0];
 
                     if ($io->isVeryVerbose()) {
@@ -295,6 +239,6 @@ class GenerateDatasCommand extends Command
 
         $formattedDatas['mapped'] = array_flip($formattedDatas['mapped']);
 
-        return json_encode($formattedDatas, JSON_PRETTY_PRINT);
+        return (string) json_encode($formattedDatas, JSON_PRETTY_PRINT);
     }
 }

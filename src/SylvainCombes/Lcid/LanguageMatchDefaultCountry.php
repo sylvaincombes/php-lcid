@@ -1,25 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SylvainCombes\Lcid;
 
-/**
- * Class LanguageMatchDefaultCountry
- *
- * @package SylvainCombes\Lcid
- */
-class LanguageMatchDefaultCountry
+final class LanguageMatchDefaultCountry
 {
     /**
-     * Tries to return a [language + country code] with a language code in input
+     * Tries to return a [language + country code] with a language code in input.
      * Example : fr => fr_FR
-     * If no match, return the input language string
-     *
-     * @param string $language
+     * If no match, return the input language string.
      *
      * @see https://msdn.microsoft.com/en-us/library/ms912047(v=winembedded.10).aspx
-     * @return string
      */
-    public static function match($language)
+    public static function match(string $language): string
     {
         $matches = [
             'af' => 'af_ZA',
@@ -116,7 +110,7 @@ class LanguageMatchDefaultCountry
             'zu' => 'zu_ZA',
         ];
 
-        if (!empty($matches[$language])) {
+        if (isset($matches[$language])) {
             return $matches[$language];
         }
 

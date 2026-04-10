@@ -10,27 +10,33 @@
       "email": "combes.sylvain@gmail.com"
     }
   ],
+  "repositories": [
+    {"type": "composer", "url": "https://packagist.org"}
+  ],
   "autoload": {
     "psr-4": {
       "SylvainCombes\\": "src/SylvainCombes"
     }
   },
   "require": {
-    "php": ">=5.6",
-    "league/json-guard": "^1.0"
+    "php": ">=8.4",
+    "opis/json-schema": "^2.3"
   },
   "require-dev": {
-    "phpunit/phpunit": "^7.0",
+    "phpunit/phpunit": "^13.0",
     "ext-intl": "*",
-    "symfony/intl": "^4.0",
-    "symfony/console": "^4.0",
-    "m6web/coke": "^2.2",
-    "m6web/symfony2-coding-standard": "^3.3"
+    "symfony/intl": "^8.0",
+    "symfony/console": "^8.0",
+    "friendsofphp/php-cs-fixer": "^3.0",
+    "phpstan/phpstan": "^2.1",
+    "vimeo/psalm": "^6.16"
   },
   "scripts": {
     "test": "./vendor/bin/phpunit --colors=always",
-    "lint": "./vendor/bin/coke",
-    "fix": "./vendor/bin/coke --fix",
-    "check": ["@test", "@fix", "@lint"]
+    "lint": "./vendor/bin/php-cs-fixer fix --dry-run --diff",
+    "fix": "./vendor/bin/php-cs-fixer fix",
+    "phpstan": "./vendor/bin/phpstan analyse --no-progress",
+    "psalm": "./vendor/bin/psalm",
+    "check": ["@test", "@lint", "@phpstan", "@psalm"]
   }
 }
