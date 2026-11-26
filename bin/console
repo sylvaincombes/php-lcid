@@ -8,6 +8,6 @@ set_time_limit(0);
 use Symfony\Component\Console\Application;
 
 $application = new Application();
-$application->add(new \SylvainCombes\Lcid\Command\GenerateDatasCommand());
+$application->addCommand(new \SylvainCombes\Lcid\Command\GenerateDatasCommand());
 
 $application->run();
