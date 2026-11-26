@@ -31,6 +31,7 @@ jobs:
         run: composer test
 
       - name: PHP CS Fixer (lint)
+        if: matrix.php == '8.4'
         run: composer lint
 
       - name: PHPStan
