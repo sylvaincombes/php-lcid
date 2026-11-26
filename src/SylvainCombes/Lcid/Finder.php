@@ -7,6 +7,7 @@ namespace SylvainCombes\Lcid;
 use Opis\JsonSchema\Helper;
 use Opis\JsonSchema\Validator as JsonSchemaValidator;
 
+/** @psalm-api */
 final class Finder
 {
     public const DATA_PATH = __DIR__.'/Resources/datas.json';
