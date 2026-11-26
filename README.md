@@ -2,7 +2,7 @@
 
 Php library trying to get a valid Unicode Locale for a given Microsoft LCID.
 
-Requires PHP 8.4+.
+Requires PHP 8.4+. Tested on PHP 8.4, 8.5 and 8.6.
 
 ## Installation
 
@@ -29,8 +29,8 @@ $finder = new Finder();
 // 1. Finding a locale by lcid
 
 // You should always use this method (use fallbacks if no 'perfect match' to try to answer something to your query instead of failing if no 'perfect match')
-$locale = $finder->findByLcidWithFallback(8201);
-// Should give you $locale == 'en'
+$locale = $finder->findByLcidWithFallback(9225);
+// Should give you $locale == 'en' (9225 has no exact match, resolved through the 'en' fallback)
 
 // You can avoid searching in fallbacks if you really want to
 $locale = $finder->findByLcid(1036);
