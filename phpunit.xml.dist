@@ -16,7 +16,6 @@
         </include>
         <exclude>
             <file>src/SylvainCombes/Lcid/Resources/datas-manual.php</file>
-            <directory suffix=".php">./src/SylvainCombes/Lcid/Command/</directory>
         </exclude>
     </source>
 

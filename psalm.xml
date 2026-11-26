@@ -22,16 +22,5 @@
         <UnusedClass errorLevel="suppress" />
         <!-- Dynamic include with a constant path, cannot be resolved statically -->
         <UnresolvableInclude errorLevel="suppress" />
-        <!-- CLI output is not an HTML context -->
-        <TaintedHtml>
-            <errorLevel type="suppress">
-                <file name="src/SylvainCombes/Lcid/Command/GenerateDatasCommand.php" />
-            </errorLevel>
-        </TaintedHtml>
-        <TaintedTextWithQuotes>
-            <errorLevel type="suppress">
-                <file name="src/SylvainCombes/Lcid/Command/GenerateDatasCommand.php" />
-            </errorLevel>
-        </TaintedTextWithQuotes>
     </issueHandlers>
 </psalm>
